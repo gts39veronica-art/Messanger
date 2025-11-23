@@ -1,4 +1,5 @@
 import telebot
+import time, threading, schedule
 users = {}
 freeid = None
 
@@ -67,6 +68,36 @@ def chatting(message):
         bot.copy_message(users[message.chat.id], users[users[message.chat.id]], message.id)
     else:
         bot.send_message(message.chat.id, 'No one can hear you...')
+
+@bot.message_handler(commands=['hey'])
+def send_welcome(message):
+    bot.reply_to(message, "Hi! Use /set <seconds> to set a timer")
+
+def beep(chat_id) -> None:
+    """Send the beep message."""
+    bot.send_message(chat_id, text='Beep!')
+
+
+@bot.message_handler(commands=['set'])
+def set_timer(message):
+    args = message.text.split()
+    if len(args) > 1 and args[1].isdigit():
+        sec = int(args[1])
+        schedule.every(sec).seconds.do(beep, message.chat.id).tag(message.chat.id)
+    else:
+        bot.reply_to(message, 'Usage: /set <seconds>')
+
+
+@bot.message_handler(commands=['unset'])
+def unset_timer(message):
+    schedule.clear(message.chat.id)
+
+
+if __name__ == '__main__':
+    threading.Thread(target=bot.infinity_polling, name='bot_infinity_polling', daemon=True).start()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 
 bot.polling()
